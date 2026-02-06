@@ -108,7 +108,14 @@ th { background: #f4f4f4; }
 }
 .modal-content input {
     width: 100%;
+    padding: 10px 12px;        /* equal padding left & right */
     margin-bottom: 10px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    box-sizing: border-box;    /* force inside width */
+}
+.modal-content input[type="date"] {
+    padding-right: 36px;   /* space for calendar icon */
 }
 .modal-actions {
     display: flex;
@@ -267,14 +274,32 @@ function generatePDF(action) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
+    // 📅 DATE + ⏰ TIME (12-hour format)
+    const now = new Date();
+
+    const day = String(now.getDate()).padStart(2, "0");
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const year = now.getFullYear();
+
+    let hours = now.getHours();
+    const minutes = String(now.getMinutes()).padStart(2, "0");
+    const ampm = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12 || 12; // convert 0 to 12
+
+    const formattedDateTime = `${day}/${month}/${year} ${hours}:${minutes} ${ampm}`;
+
+    // 🧾 HEADER
     doc.setFontSize(18);
     doc.text("Billing Invoice", 14, 15);
+
     doc.setFontSize(11);
     doc.text(`Invoice No: ${invoiceNumber}`, 14, 23);
     doc.text(`Customer Name: ${customerName.value || "-"}`, 14, 30);
-    doc.setFontSize(10);
-    doc.text(`Generated on: ${formatDateToDDMMYYYY(new Date())}`, 14, 36);
 
+    doc.setFontSize(10);
+    doc.text(`Generated on: ${formattedDateTime}`, 14, 36);
+
+    // 📊 TABLE DATA
     const data = [];
     document.querySelectorAll("#billTable tbody tr").forEach(r => {
         data.push([
@@ -286,42 +311,43 @@ function generatePDF(action) {
         ]);
     });
 
-doc.autoTable({
-    startY: 42,
-    head: [["Date","Product","Price","Qty","Amount"]],
-    body: data,
+    doc.autoTable({
+        startY: 42,
+        head: [["Date", "Product", "Price", "Qty", "Amount"]],
+        body: data,
 
-    foot: [[ "", "", "", "Total", total.toString() ]],
+        foot: [[ "", "", "", "Total", total.toString() ]],
 
-    styles: {
-        halign: "center",
-        textColor: [0, 0, 0]
-    },
+        styles: {
+            halign: "center",
+            textColor: [0, 0, 0]
+        },
 
-    headStyles: {
-        fillColor: [100, 126, 234],   // header stays same
-        textColor: [255, 255, 255],
-        fontStyle: "bold"
-    },
+        headStyles: {
+            fillColor: [100, 126, 234],
+            textColor: [255, 255, 255],
+            fontStyle: "bold"
+        },
 
-    footStyles: {
-        fillColor: [230, 236, 255],   // 🌟 LIGHT BLUE
-        textColor: [0, 0, 0],         // black text
-        fontStyle: "bold",
-        lineWidth: 0.5,
-        lineColor: [180, 180, 180]
-    },
+        footStyles: {
+            fillColor: [230, 236, 255],
+            textColor: [0, 0, 0],
+            fontStyle: "bold",
+            lineWidth: 0.5,
+            lineColor: [180, 180, 180]
+        },
 
-    columnStyles: {
-        4: { fontStyle: "bold" }      // Amount column bold
-    }
-});
+        columnStyles: {
+            4: { fontStyle: "bold" }
+        }
+    });
 
-
+    // ⬇️ DOWNLOAD / 🖨️ PRINT
     action === "download"
         ? doc.save("invoice.pdf")
         : (doc.autoPrint(), window.open(doc.output("bloburl")));
 }
+
 
 function downloadPDF(){ generatePDF("download"); }
 function printPDF(){ generatePDF("print"); }
