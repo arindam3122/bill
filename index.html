@@ -319,8 +319,9 @@ function generatePDF(action) {
     const formattedDateTime = `${day}/${month}/${year} ${hours}:${minutes} ${ampm}`;
 
     // 🧾 HEADER
-    doc.setFontSize(18);
-    doc.text("Billing Invoice", 14, 15);
+   doc.setFontSize(20);
+   doc.text(" Hare Krishna ", 14, 15);
+
 
     doc.setFontSize(11);
     doc.text(`Invoice No: ${invoiceNumber}`, 14, 23);
