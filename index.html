@@ -157,8 +157,21 @@ th { background: #f4f4f4; }
 </thead>
 <tbody></tbody>
 </table>
+<div style="display:flex;justify-content:flex-end;gap:10px;margin-top:10px;">
+    <label style="font-weight:600;">Deduction:</label>
+    <input
+        type="number"
+        id="deduction"
+        value="0"
+        min="0"
+        style="width:120px;padding:6px;border-radius:6px;border:1px solid #ccc;"
+        oninput="updateTotal()"
+    >
+</div>
 
 <div class="total" id="total">Total: ₹0</div>
+<div class="total" id="finalTotal">Payable: ₹0</div>
+
 
 <div class="actions">
     <button class="download" onclick="downloadPDF()">Download PDF</button>
@@ -206,9 +219,26 @@ invoiceDate.innerText = "Date: " + formatDateToDDMMYYYY(new Date());
 
 function updateTotal() {
     total = 0;
-    document.querySelectorAll(".amount").forEach(a => total += Number(a.innerText));
+
+    document.querySelectorAll(".amount").forEach(a => {
+        total += Number(a.innerText);
+    });
+
+    const deductionInput = document.getElementById("deduction");
+    const deduction = Number(deductionInput.value) || 0;
+
+    if (deduction > total) {
+        showError("Deduction cannot be greater than total amount.");
+        deductionInput.value = 0;
+        return;
+    }
+
+    const payable = total - deduction;
+
     totalEl.innerText = `Total: ₹${total}`;
+    document.getElementById("finalTotal").innerText = `Payable: ₹${payable}`;
 }
+
 
 function addItem() {
     if (!date.value || !product.value || !price.value || !qty.value) {
@@ -310,13 +340,20 @@ function generatePDF(action) {
             r.cells[4].innerText
         ]);
     });
+    const deduction = Number(document.getElementById("deduction").value) || 0;
+    const payable = total - deduction;
 
     doc.autoTable({
         startY: 42,
         head: [["Date", "Product", "Price", "Qty", "Amount"]],
         body: data,
 
-        foot: [[ "", "", "", "Total", total.toString() ]],
+        foot: [
+        ["", "", "", "Total", total.toString()],
+        ["", "", "", "Deduction", deduction.toString()],
+        ["", "", "", "Payable", payable.toString()]
+      ],
+
 
         styles: {
             halign: "center",
