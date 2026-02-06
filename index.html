@@ -212,7 +212,7 @@ function updateTotal() {
 
 function addItem() {
     if (!date.value || !product.value || !price.value || !qty.value) {
-        alert("Fill all fields");
+        showError("Please fill all fields before adding the item.");
         return;
     }
 
@@ -347,12 +347,48 @@ function generatePDF(action) {
         ? doc.save("invoice.pdf")
         : (doc.autoPrint(), window.open(doc.output("bloburl")));
 }
+function hasInvoiceData() {
+    return document.querySelectorAll("#billTable tbody tr").length > 0;
+}
 
+function showError(message) {
+    document.getElementById("errorMessage").innerText = message;
+    document.getElementById("errorModal").style.display = "flex";
+}
 
-function downloadPDF(){ generatePDF("download"); }
-function printPDF(){ generatePDF("print"); }
+function closeErrorModal() {
+    document.getElementById("errorModal").style.display = "none";
+}
+
+function downloadPDF() {
+    if (!hasInvoiceData()) {
+        showError("Please enter data to download the invoice.");
+        return;
+    }
+    generatePDF("download");
+}
+
+function printPDF() {
+    if (!hasInvoiceData()) {
+        showError("Please enter data to print the invoice.");
+        return;
+    }
+    generatePDF("print");
+}
+
 
 const totalEl = document.getElementById("total");
 </script>
+<!-- ERROR MODAL -->
+<div class="modal" id="errorModal">
+  <div class="modal-content">
+    <h3 style="margin-top:0;color:#f44336;">⚠️ Error</h3>
+    <p id="errorMessage" style="margin:10px 0;"></p>
+    <div class="modal-actions" style="justify-content:flex-end;">
+      <button class="delete" onclick="closeErrorModal()">OK</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
