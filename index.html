@@ -322,7 +322,7 @@ function generatePDF(action) {
 
     // 🧾 HEADER
    doc.setFontSize(20);
-   doc.text(" Hare Krishna ", 14, 15);
+   doc.text(" HARE KRISHNA ", 14, 15);
 
 
     doc.setFontSize(11);
@@ -343,44 +343,84 @@ function generatePDF(action) {
             r.cells[4].innerText
         ]);
     });
-    const deduction = Number(document.getElementById("deduction").value) || 0;
-    const payable = total - deduction;
+// ===== TOTAL / DEDUCTION / PAYABLE LOGIC =====
+const deduction = Number(document.getElementById("deduction").value) || 0;
+const payable = total - deduction;
 
-    doc.autoTable({
-        startY: 42,
-        head: [["Date", "Product", "Price", "Qty", "Amount"]],
-        body: data,
+// ----- BUILD FOOTER ROWS DYNAMICALLY -----
+const footerRows = [];
 
-        foot: [
-        ["", "", "", "Total", total.toString()],
-        ["", "", "", "Deduction", deduction.toString()],
-        ["", "", "", "Payable", payable.toString()]
-      ],
+// Always show Total
+footerRows.push(["", "", "", "Total", total.toString()]);
 
+// Show Deduction & Payable ONLY if deduction > 0
+if (deduction > 0) {
+  footerRows.push(["", "", "", "Deduction", deduction.toString()]);
+  footerRows.push(["", "", "", "Payable", payable.toString()]);
+}
 
-        styles: {
-            halign: "center",
-            textColor: [0, 0, 0]
-        },
+// ===== PDF TABLE =====
+doc.autoTable({
+  startY: 42,
 
-        headStyles: {
-            fillColor: [100, 126, 234],
-            textColor: [255, 255, 255],
-            fontStyle: "bold"
-        },
+  head: [["Date", "Product", "Price", "Qty", "Amount"]],
 
-        footStyles: {
-            fillColor: [230, 236, 255],
-            textColor: [0, 0, 0],
-            fontStyle: "bold",
-            lineWidth: 0.5,
-            lineColor: [180, 180, 180]
-        },
+  body: data,
 
-        columnStyles: {
-            4: { fontStyle: "bold" }
-        }
-    });
+  foot: footerRows,
+
+  styles: {
+    halign: "center",
+    textColor: [0, 0, 0]
+  },
+
+  headStyles: {
+  fillColor: [76, 175, 80],   // soft material green
+  textColor: [255, 255, 255],
+  fontStyle: "bold"
+ },
+
+  footStyles: {
+    fillColor: [255, 255, 255], // white background
+    lineWidth: 0.5,
+    lineColor: [200, 200, 200]
+  },
+
+  columnStyles: {
+    4: { fontStyle: "bold" } // Amount column bold
+  },
+
+  didParseCell: function (data) {
+    if (data.section === "foot") {
+      const label = data.row.raw[3]; // Total / Deduction / Payable
+
+      // ONLY Total exists → make it GREEN
+      if (label === "Total" && deduction === 0) {
+      data.cell.styles.textColor = [0, 150, 136]; // stronger teal-green
+      data.cell.styles.fontStyle = "bold";
+      data.cell.styles.fontSize = 12; // slightly bigger for visibility
+     }
+
+      // Total when deduction exists → grey
+      if (label === "Total" && deduction > 0) {
+        data.cell.styles.textColor = [60, 60, 60]; // grey
+        data.cell.styles.fontStyle = "bold";
+      }
+
+      // Deduction → red
+      if (label === "Deduction") {
+        data.cell.styles.textColor = [198, 40, 40]; // red
+        data.cell.styles.fontStyle = "bold";
+      }
+
+      // Payable → green
+     if (label === "Payable") {
+     data.cell.styles.textColor = [76, 175, 80]; // SAME green
+     data.cell.styles.fontStyle = "bold";
+     }
+    }
+  }
+});
     saveInvoiceToLocal();
 
     // ⬇️ DOWNLOAD / 🖨️ PRINT
