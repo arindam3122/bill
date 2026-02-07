@@ -176,6 +176,7 @@ th { background: #f4f4f4; }
 
 <div class="actions">
     <button class="download" onclick="downloadPDF()">Download PDF</button>
+    <button class="download" onclick="openHistory()">Invoice History</button>
     <button class="print" onclick="printPDF()">Print PDF</button>
 </div>
 </div>
@@ -467,16 +468,20 @@ function downloadPDF() {
         showError("Please enter data to download the invoice.");
         return;
     }
+    saveInvoiceToLocal();
     generatePDF("download");
 }
+
 
 function printPDF() {
     if (!hasInvoiceData()) {
         showError("Please enter data to print the invoice.");
         return;
     }
+    saveInvoiceToLocal();
     generatePDF("print");
 }
+
 function saveInvoiceToLocal() {
     const items = [];
     document.querySelectorAll("#billTable tbody tr").forEach(r => {
@@ -561,8 +566,171 @@ qty.addEventListener("keydown", e => {
     }
 });
 
-
 const totalEl = document.getElementById("total");
+function openHistory() {
+    const invoices = JSON.parse(localStorage.getItem("invoices") || "[]");
+    const list = document.getElementById("historyList");
+    list.innerHTML = "";
+
+    if (invoices.length === 0) {
+        list.innerHTML = "<p>No invoices found.</p>";
+        historyModal.style.display = "flex";
+        return;
+    }
+
+    invoices.forEach((inv, i) => {
+        const card = document.createElement("div");
+        card.style.border = "1px solid #ddd";
+        card.style.borderRadius = "10px";
+        card.style.padding = "12px";
+        card.style.marginBottom = "14px";
+
+        card.innerHTML = `
+            <div style="font-size:15px;">
+                <b>🧾 Invoice No:</b> ${inv.invoiceNo}<br>
+                <b>👤 Customer:</b> ${inv.customer || "-"}<br>
+                <b>📅 Created:</b> ${formatDateTime12H(inv.date)}<br>
+                <b>💰 Total:</b> ₹${inv.total}
+            </div>
+
+            <div style="margin-top:10px;">
+                <button class="action-btn edit" onclick="viewInvoice(${i})">View</button>
+                <button class="action-btn delete" onclick="confirmDelete(${i})">Delete</button>
+            </div>
+        `;
+
+        list.appendChild(card);
+    });
+
+    historyModal.style.display = "flex";
+}
+
+
+function closeHistory() {
+    historyModal.style.display = "none";
+}
+
+function viewInvoice(index) {
+    const invoices = JSON.parse(localStorage.getItem("invoices"));
+    const inv = invoices[index];
+
+    const deduction = Number(inv.deduction) || 0;
+    const payable = inv.total - deduction;
+
+    let html = `
+        <h3 style="margin-top:0;">🧾 Invoice Details</h3>
+
+        <p><b>Invoice No:</b> ${inv.invoiceNo}</p>
+        <p><b>Customer:</b> ${inv.customer || "-"}</p>
+        <p><b>Created On:</b> ${formatDateTime12H(inv.date)}</p>
+
+        <table style="width:100%;font-size:13px;border-collapse:collapse;margin-top:10px;">
+            <tr style="background:#f4f4f4;">
+                <th style="padding:6px;">Date</th>
+                <th style="padding:6px;">Product</th>
+                <th style="padding:6px;">Price</th>
+                <th style="padding:6px;">Qty</th>
+                <th style="padding:6px;">Amount</th>
+            </tr>
+    `;
+
+    inv.items.forEach(it => {
+        html += `
+            <tr>
+                <td style="padding:6px;text-align:center;">${it.date}</td>
+                <td style="padding:6px;">${it.product}</td>
+                <td style="padding:6px;text-align:center;">${it.price}</td>
+                <td style="padding:6px;text-align:center;">${it.qty}</td>
+                <td style="padding:6px;text-align:center;">${it.amount}</td>
+            </tr>
+        `;
+    });
+
+    html += `
+        </table>
+
+        <div style="text-align:right;margin-top:10px;">
+            <p><b>Total:</b> ₹${inv.total}</p>
+    `;
+
+    if (deduction > 0) {
+        html += `
+            <p style="color:#c62828;"><b>Deduction:</b> ₹${deduction}</p>
+            <p style="color:#2e7d32;font-size:16px;">
+                <b>Payable:</b> ₹${payable}
+            </p>
+        `;
+    }
+
+    html += `</div>`;
+
+    viewContent.innerHTML = html;
+
+    viewActions.innerHTML = `
+        <button class="add-btn" onclick="closeView()">Close</button>
+    `;
+
+    viewModal.style.display = "flex";
+}
+
+
+
+function closeView() {
+    viewModal.style.display = "none";
+}
+
+function confirmDelete(index) {
+    viewContent.innerHTML = `
+        <h3>⚠️ Delete Invoice</h3>
+        <p>Are you sure you want to delete this invoice?</p>
+    `;
+
+    viewActions.innerHTML = `
+        <button class="delete" onclick="deleteInvoice(${index})">Yes</button>
+        <button class="add-btn" onclick="closeView()">No</button>
+    `;
+
+    viewModal.style.display = "flex";
+}
+
+function deleteInvoice(index) {
+    const invoices = JSON.parse(localStorage.getItem("invoices"));
+    invoices.splice(index, 1);
+    localStorage.setItem("invoices", JSON.stringify(invoices));
+
+    closeView();
+    openHistory();
+
+    showToast("Invoice deleted successfully");
+}
+
+function formatDateTime12H(isoString) {
+    const d = new Date(isoString);
+
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const year = d.getFullYear();
+
+    let hours = d.getHours();
+    const minutes = String(d.getMinutes()).padStart(2, "0");
+    const ampm = hours >= 12 ? "PM" : "AM";
+
+    hours = hours % 12 || 12;
+
+    return `${day}/${month}/${year} ${hours}:${minutes} ${ampm}`;
+}
+function showToast(message) {
+    const toast = document.getElementById("toast");
+    toast.innerText = "✅ " + message;
+
+    toast.classList.add("show");
+
+    setTimeout(() => {
+        toast.classList.remove("show");
+    }, 3000);
+}
+
+
 </script>
 <!-- ERROR MODAL -->
 <div class="modal" id="errorModal">
@@ -574,6 +742,65 @@ const totalEl = document.getElementById("total");
     </div>
   </div>
 </div>
+<!-- INVOICE HISTORY MODAL -->
+<div class="modal" id="historyModal">
+  <div class="modal-content" style="width:420px;">
+    <h3>📚 Invoice History</h3>
+    <div id="historyList"></div>
+    <div class="modal-actions">
+      <button class="delete" onclick="closeHistory()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- VIEW / DELETE MODAL -->
+<div class="modal" id="viewModal">
+  <div class="modal-content" style="width:420px;">
+    <div id="viewContent"></div>
+    <div class="modal-actions" id="viewActions"></div>
+  </div>
+</div>
+<!-- TOAST -->
+<div id="toast" class="toast">
+    ✅ Invoice deleted successfully
+</div>
+
+<style>
+.toast {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    min-width: 260px;
+    background: linear-gradient(135deg, #43cea2, #185a9d);
+    color: #fff;
+    padding: 14px 18px 14px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+    opacity: 0;
+    transform: translateX(-20px);
+    pointer-events: none;
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    z-index: 9999;
+}
+
+.toast::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 5px;
+    height: 100%;
+    background: #00e676;
+    border-radius: 8px 0 0 8px;
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateX(0);
+}
+</style>
 
 </body>
 </html>
