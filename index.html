@@ -138,7 +138,8 @@ th { background: #f4f4f4; }
 
 <div class="inputs">
     <input type="date" id="date">
-    <input type="text" id="product" placeholder="Product name">
+    <input list="products" id="product" placeholder="Product name">
+    <datalist id="products"></datalist>
     <input type="number" id="price" placeholder="Price">
     <input type="number" id="qty" placeholder="Qty" value="1">
     <button class="add-btn" onclick="addItem()">Add</button>
@@ -267,6 +268,7 @@ function addItem() {
     product.value = "";
     price.value = "";
     qty.value = 1;
+    product.focus();
 }
 
 function deleteRow(btn) {
@@ -379,6 +381,7 @@ function generatePDF(action) {
             4: { fontStyle: "bold" }
         }
     });
+    saveInvoiceToLocal();
 
     // ⬇️ DOWNLOAD / 🖨️ PRINT
     action === "download"
@@ -413,6 +416,76 @@ function printPDF() {
     }
     generatePDF("print");
 }
+function saveInvoiceToLocal() {
+    const items = [];
+    document.querySelectorAll("#billTable tbody tr").forEach(r => {
+        items.push({
+            date: r.cells[0].innerText,
+            product: r.cells[1].innerText,
+            price: r.cells[2].innerText,
+            qty: r.cells[3].innerText,
+            amount: r.cells[4].innerText
+        });
+    });
+
+    const invoice = {
+        invoiceNo: invoiceNumber,
+        customer: customerName.value,
+        deduction: deduction.value,
+        total,
+        date: new Date().toISOString(),
+        items
+    };
+
+    const invoices = JSON.parse(localStorage.getItem("invoices") || "[]");
+    invoices.push(invoice);
+    localStorage.setItem("invoices", JSON.stringify(invoices));
+}
+// PRODUCT MASTER pricing
+const productMaster = {
+    "Veg Momo (8pieces)": 40,
+    "Mathura cake": 10,
+    "Biryani full": 100,
+    "Vegetable Chop": 8,
+    "Samosa": 7,
+    "Beguni": 6,
+    "Alu Chop": 6,
+    "Chawanprash 250g": 150,
+    "Fruit cake": 50,
+    "Idli (1piece)": 25,
+    "Paneer Roll": 45,
+    "Bag": 500
+};
+
+// Populate datalist
+const productList = document.getElementById("products");
+for (let p in productMaster) {
+    const option = document.createElement("option");
+    option.value = p;
+    productList.appendChild(option);
+}
+
+// Auto-fill price when product selected
+product.addEventListener("change", () => {
+    if (productMaster[product.value]) {
+        price.value = productMaster[product.value];
+        qty.focus();
+        autoCalculateAmount();
+    }
+});
+function autoCalculateAmount() {
+    if (!price.value || !qty.value) return;
+    // Reserved for future live preview if needed
+}
+
+// Live update while typing
+price.addEventListener("input", autoCalculateAmount);
+qty.addEventListener("input", autoCalculateAmount);
+qty.addEventListener("keydown", e => {
+    if (e.key === "Enter") {
+        addItem();
+    }
+});
 
 
 const totalEl = document.getElementById("total");
