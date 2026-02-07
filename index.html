@@ -99,13 +99,24 @@ th { background: #f4f4f4; }
     background: rgba(0,0,0,0.5);
     justify-content: center;
     align-items: center;
+
+    /* ✅ allow scrolling */
+    overflow-y: auto;
+    padding: 20px;
 }
+
 .modal-content {
     background: #fff;
     padding: 20px;
     border-radius: 10px;
-    width: 320px;
+    width: 420px;
+
+    /* ✅ scroll inside modal */
+    max-height: 85vh;
+    overflow-y: auto;
+    scrollbar-width: thin;
 }
+
 .modal-content input {
     width: 100%;
     padding: 10px 12px;        /* equal padding left & right */
@@ -729,6 +740,127 @@ function showToast(message) {
         toast.classList.remove("show");
     }, 3000);
 }
+function openAddInvoiceModal() {
+    document.getElementById("aiItems").innerHTML = "";
+    addInvoiceItem();
+    addInvoiceModal.style.display = "flex";
+}
+
+function closeAddInvoiceModal() {
+    addInvoiceModal.style.display = "none";
+}
+
+function addInvoiceItem() {
+    const div = document.createElement("div");
+    div.style.display = "grid";
+    div.style.gridTemplateColumns = "1.4fr 2fr 1fr 1fr 1fr";
+    div.style.gap = "6px";
+    div.style.marginBottom = "6px";
+
+    div.innerHTML = `
+        <input type="date">
+
+        <input list="products" placeholder="Product">
+
+        <input type="number" placeholder="Price">
+
+        <input type="number" placeholder="Qty" value="1">
+
+        <input type="number" placeholder="Amount" readonly>
+    `;
+
+    const inputs = div.querySelectorAll("input");
+
+    const dateInput = inputs[0];
+    const productInput = inputs[1];
+    const priceInput = inputs[2];
+    const qtyInput = inputs[3];
+    const amountInput = inputs[4];
+
+    // Auto-fill price from product master
+    productInput.addEventListener("change", () => {
+        if (productMaster[productInput.value]) {
+            priceInput.value = productMaster[productInput.value];
+            updateAmount();
+        }
+    });
+
+    function updateAmount() {
+        const price = Number(priceInput.value);
+        const qty = Number(qtyInput.value);
+        amountInput.value = price && qty ? price * qty : "";
+    }
+
+    priceInput.addEventListener("input", updateAmount);
+    qtyInput.addEventListener("input", updateAmount);
+
+    document.getElementById("aiItems").appendChild(div);
+}
+
+
+function saveManualInvoice() {
+    const invoiceNo = aiInvoiceNo.value.trim();
+    const customer = aiCustomer.value.trim();
+    const dateValue = aiDate.value;
+
+    if (!invoiceNo || !dateValue) {
+        alert("Invoice No and Generated Date are required");
+        return;
+    }
+
+    const items = [];
+    let total = 0;
+
+    document.querySelectorAll("#aiItems > div").forEach(row => {
+        const inputs = row.querySelectorAll("input");
+
+        const itemDate = inputs[0].value;
+        const product = inputs[1].value;
+        const price = Number(inputs[2].value);
+        const qty = Number(inputs[3].value);
+        const amount = Number(inputs[4].value);
+
+        if (itemDate && product && qty && amount) {
+            items.push({
+                date: formatDateToDDMMYYYY(itemDate),
+                product,
+                price,
+                qty,
+                amount
+            });
+            total += amount;
+        }
+    });
+
+    if (items.length === 0) {
+        alert("Add at least one product");
+        return;
+    }
+
+    const deduction = Number(aiDeduction.value) || 0;
+
+    if (deduction > total) {
+        alert("Deduction cannot be greater than total");
+        return;
+    }
+
+    const invoice = {
+        invoiceNo,
+        customer,
+        date: new Date(dateValue).toISOString(),
+        items,
+        total,
+        deduction
+    };
+
+    const invoices = JSON.parse(localStorage.getItem("invoices") || "[]");
+    invoices.push(invoice);
+    localStorage.setItem("invoices", JSON.stringify(invoices));
+
+    closeAddInvoiceModal();
+    openHistory();
+    showToast("Past invoice added successfully");
+}
 
 
 </script>
@@ -746,9 +878,38 @@ function showToast(message) {
 <div class="modal" id="historyModal">
   <div class="modal-content" style="width:420px;">
     <h3>📚 Invoice History</h3>
+    <button class="add-btn" style="margin-bottom:10px;" onclick="openAddInvoiceModal()">
+    ➕ Add Past Invoice
+    </button>
     <div id="historyList"></div>
     <div class="modal-actions">
       <button class="delete" onclick="closeHistory()">Close</button>
+    </div>
+  </div>
+</div>
+<!-- ADD PAST INVOICE MODAL -->
+<div class="modal" id="addInvoiceModal">
+  <div class="modal-content" style="width:440px;max-height:80vh;overflow:auto;">
+    <h3>➕ Add Past Invoice</h3>
+
+    <input id="aiInvoiceNo" placeholder="Invoice No">
+    <input id="aiCustomer" placeholder="Customer Name">
+    <input type="datetime-local" id="aiDate">
+
+    <hr>
+
+    <h4>Products</h4>
+    <div id="aiItems"></div>
+
+    <button class="add-btn" onclick="addInvoiceItem()">➕ Add Product</button>
+
+    <hr>
+
+    <input type="number" id="aiDeduction" placeholder="Deduction (optional)" value="0">
+
+    <div class="modal-actions">
+      <button class="add-btn" onclick="saveManualInvoice()">Save</button>
+      <button class="delete" onclick="closeAddInvoiceModal()">Cancel</button>
     </div>
   </div>
 </div>
