@@ -597,31 +597,30 @@ qty.addEventListener("keydown", e => {
 const totalEl = document.getElementById("total");
 function openHistory() {
     const invoices = JSON.parse(localStorage.getItem("invoices") || "[]");
+    renderInvoices(invoices);
+    historyModal.style.display = "flex";
+}
+function renderInvoices(invoices, search = "") {
     const list = document.getElementById("historyList");
     list.innerHTML = "";
 
-    if (invoices.length === 0) {
-        list.innerHTML = "<p>No invoices found.</p>";
-        historyModal.style.display = "flex";
-        return;
-    }
-
     invoices.forEach((inv, i) => {
+        if (search && !inv.invoiceNo.toLowerCase().includes(search)) return;
+
+        const highlightedInvoice = highlight(inv.invoiceNo, search);
+
         const card = document.createElement("div");
         card.style.border = "1px solid #ddd";
         card.style.borderRadius = "10px";
         card.style.padding = "12px";
-        card.style.marginBottom = "14px";
+        card.style.marginBottom = "12px";
 
         card.innerHTML = `
-            <div style="font-size:15px;">
-                <b>🧾 Invoice No:</b> ${inv.invoiceNo}<br>
-                <b>👤 Customer:</b> ${inv.customer || "-"}<br>
-                <b>📅 Created:</b> ${formatDateTime12H(inv.date)}<br>
-                <b>💰 Total:</b> ₹${inv.total}
-            </div>
-
-            <div style="margin-top:10px;">
+            <b>🧾 Invoice No:</b> ${highlightedInvoice}<br>
+            <b>👤 Customer:</b> ${inv.customer || "-"}<br>
+            <b>📅 Created:</b> ${formatDateTime12H(inv.date)}<br>
+            <b>💰 Total:</b> ₹${inv.total}
+            <div style="margin-top:8px;">
                 <button class="action-btn edit" onclick="viewInvoice(${i})">View</button>
                 <button class="action-btn delete" onclick="confirmDelete(${i})">Delete</button>
             </div>
@@ -629,10 +628,19 @@ function openHistory() {
 
         list.appendChild(card);
     });
-
-    historyModal.style.display = "flex";
 }
 
+function searchInvoices() {
+    const search = document.getElementById("invoiceSearch").value.toLowerCase();
+    const invoices = JSON.parse(localStorage.getItem("invoices") || "[]");
+    renderInvoices(invoices, search);
+}
+
+function highlight(text, search) {
+    if (!search) return text;
+    const regex = new RegExp(`(${search})`, "gi");
+    return text.replace(regex, `<mark style="background:#ffeb3b;">$1</mark>`);
+}
 
 function closeHistory() {
     historyModal.style.display = "none";
@@ -879,6 +887,49 @@ function saveManualInvoice() {
     openHistory();
     showToast("Past invoice added successfully");
 }
+function backupInvoices() {
+    const invoices = localStorage.getItem("invoices");
+
+    if (!invoices) {
+        alert("No invoices to backup");
+        return;
+    }
+
+    const blob = new Blob([invoices], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "invoice-backup.json";
+    a.click();
+
+    URL.revokeObjectURL(url);
+}
+
+function restoreInvoices(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        try {
+            const data = JSON.parse(e.target.result);
+
+            if (!Array.isArray(data)) {
+                alert("Invalid backup file");
+                return;
+            }
+
+            localStorage.setItem("invoices", JSON.stringify(data));
+            openHistory();
+            showToast("Invoices restored successfully");
+        } catch {
+            alert("Failed to restore file");
+        }
+    };
+
+    reader.readAsText(file);
+}
 
 
 </script>
@@ -895,11 +946,43 @@ function saveManualInvoice() {
 <!-- INVOICE HISTORY MODAL -->
 <div class="modal" id="historyModal">
   <div class="modal-content" style="width:420px;">
-    <h3>📚 Invoice History</h3>
-    <button class="add-btn" style="margin-bottom:10px;" onclick="openAddInvoiceModal()">
-    ➕ Add Past Invoice
-    </button>
-    <div id="historyList"></div>
+<h3>📚 Invoice History</h3>
+
+<button class="add-btn" onclick="openAddInvoiceModal()">➕ Add Past Invoice</button>
+
+<button class="add-btn" style="margin-top:6px;" onclick="backupInvoices()">
+⬇️ Backup Invoices
+</button>
+
+<input
+  type="file"
+  id="restoreFile"
+  accept=".json"
+  style="display:none"
+  onchange="restoreInvoices(event)"
+>
+
+<button class="add-btn" style="margin-top:6px;"
+  onclick="document.getElementById('restoreFile').click()">
+⬆️ Restore Invoices
+</button>
+
+<hr>
+<input
+  type="text"
+  id="invoiceSearch"
+  placeholder="🔍 Search by Invoice Number"
+  oninput="searchInvoices()"
+  style="
+    width:100%;
+    padding:8px;
+    margin-bottom:10px;
+    border-radius:6px;
+    border:1px solid #ccc;"
+>
+
+<div id="historyList"></div>
+
     <div class="modal-actions">
       <button class="delete" onclick="closeHistory()">Close</button>
     </div>
