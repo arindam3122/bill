@@ -538,15 +538,40 @@ function openEdit(btn) {
 }
 
 function saveEdit() {
-    const amount = mPrice.value * mQty.value;
-    editRowRef.cells[0].innerText = formatDateToDDMMYYYY(mDate.value);
-    editRowRef.cells[1].innerText = mProduct.value;
-    editRowRef.cells[2].innerText = mPrice.value;
-    editRowRef.cells[3].innerText = mQty.value;
-    editRowRef.cells[4].innerText = amount;
+    const oldDate = editRowRef.cells[0].innerText;
+    const oldProduct = editRowRef.cells[1].innerText;
+    const oldPrice = editRowRef.cells[2].innerText;
+    const oldQty = editRowRef.cells[3].innerText;
+
+    const newDate = formatDateToDDMMYYYY(mDate.value);
+    const newProduct = mProduct.value;
+    const newPrice = mPrice.value;
+    const newQty = mQty.value;
+
+    const changes = [];
+
+    if (oldDate !== newDate) changes.push("Date updated");
+    if (oldProduct !== newProduct) changes.push("Product updated");
+    if (oldPrice !== newPrice) changes.push("Price updated");
+    if (oldQty !== newQty) changes.push("Quantity updated");
+
+    // Apply changes
+    editRowRef.cells[0].innerText = newDate;
+    editRowRef.cells[1].innerText = newProduct;
+    editRowRef.cells[2].innerText = newPrice;
+    editRowRef.cells[3].innerText = newQty;
+    editRowRef.cells[4].innerText = newPrice * newQty;
+
     updateTotal();
     sortTableByDate();
     closeModal();
+
+    // Show success message
+    if (changes.length > 0) {
+        showToast(changes.join(", ") + " successfully");
+    } else {
+        showToast("No changes made");
+    }
 }
 
 function closeModal() {
