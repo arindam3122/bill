@@ -686,6 +686,40 @@ doc.text(
     ? doc.save("invoice.pdf")
     : (doc.autoPrint(), window.open(doc.output("bloburl")));
 }
+function downloadPastInvoice(index) {
+    const invoices = JSON.parse(localStorage.getItem("invoices") || "[]");
+    const inv = invoices[index];
+
+    loadInvoiceToEditor(inv);
+    generatePDF("download");
+}
+function loadInvoiceToEditor(inv) {
+    // Set invoice header
+    customerName.value = inv.customer || "";
+    invoiceNo.innerText = "Invoice No: " + inv.invoiceNo;
+    invoiceDate.innerText = "Date: " + formatDateToDDMMYYYY(inv.date);
+
+    // Clear table
+    const tbody = document.querySelector("#billTable tbody");
+    tbody.innerHTML = "";
+
+    // Add rows
+    inv.items.forEach(it => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+            <td>${it.date}</td>
+            <td>${it.product}</td>
+            <td>${it.price}</td>
+            <td>${it.qty}</td>
+            <td class="amount">${it.amount}</td>
+            <td></td>
+        `;
+        tbody.appendChild(row);
+    });
+
+    document.getElementById("deduction").value = inv.deduction || 0;
+    updateTotal();
+}
 function hasInvoiceData() {
     return document.querySelectorAll("#billTable tbody tr").length > 0;
 }
@@ -873,6 +907,7 @@ function renderInvoices(invoices, search = "") {
             <div style="margin-top:8px;">
             <button class="action-btn edit" onclick="editInvoice(${i})">Edit</button>
             <button class="action-btn edit" onclick="viewInvoice(${i})">View</button>
+            <button class="action-btn edit" onclick="downloadPastInvoice(${i})">Download PDF</button>
             <button class="action-btn delete" onclick="confirmDelete(${i})">Delete</button>
             </div>
         `;
