@@ -937,7 +937,11 @@ qty.addEventListener("keydown", e => {
 
 const totalEl = document.getElementById("total");
 function openHistory() {
-    const invoices = JSON.parse(localStorage.getItem("invoices") || "[]");
+    let invoices = JSON.parse(localStorage.getItem("invoices") || "[]");
+
+    // 🔥 Newest first
+    invoices.sort((a, b) => new Date(b.date) - new Date(a.date));
+
     renderInvoices(invoices);
     historyModal.style.display = "flex";
 }
@@ -945,10 +949,16 @@ function renderInvoices(invoices, search = "") {
     const list = document.getElementById("historyList");
     list.innerHTML = "";
 
-    invoices.forEach((inv, i) => {
-        if (search && !inv.invoiceNo.toLowerCase().includes(search)) return;
+    const term = search.toLowerCase();
 
-        const highlightedInvoice = highlight(inv.invoiceNo, search);
+    invoices.forEach((inv, i) => {
+        const invoiceNoMatch = inv.invoiceNo.toLowerCase().includes(term);
+        const customerMatch = (inv.customer || "").toLowerCase().includes(term);
+
+        if (term && !invoiceNoMatch && !customerMatch) return;
+
+        const highlightedInvoice = highlight(inv.invoiceNo, term);
+        const highlightedCustomer = highlight(inv.customer || "-", term);
 
         const card = document.createElement("div");
         card.style.border = "1px solid #ddd";
@@ -958,14 +968,14 @@ function renderInvoices(invoices, search = "") {
 
         card.innerHTML = `
             <b>🧾 Invoice No:</b> ${highlightedInvoice}<br>
-            <b>👤 Customer:</b> ${inv.customer || "-"}<br>
+            <b>👤 Customer:</b> ${highlightedCustomer}<br>
             <b>📅 Created:</b> ${formatDateTime12H(inv.date)}<br>
             <b>💰 Total:</b> ₹${inv.total}
             <div style="margin-top:8px;">
-            <button class="action-btn edit" onclick="editInvoice(${i})">Edit</button>
-            <button class="action-btn edit" onclick="viewInvoice(${i})">View</button>
-            <button class="action-btn download-pdf" onclick="downloadPastInvoice(${i})"> ⬇️ Download PDF </button>
-            <button class="action-btn delete" onclick="confirmDelete(${i})">Delete</button>
+                <button class="action-btn edit" onclick="editInvoice(${i})">Edit</button>
+                <button class="action-btn edit" onclick="viewInvoice(${i})">View</button>
+                <button class="action-btn download-pdf" onclick="downloadPastInvoice(${i})">⬇️ Download PDF</button>
+                <button class="action-btn delete" onclick="confirmDelete(${i})">Delete</button>
             </div>
         `;
 
@@ -974,8 +984,13 @@ function renderInvoices(invoices, search = "") {
 }
 
 function searchInvoices() {
-    const search = document.getElementById("invoiceSearch").value.toLowerCase();
-    const invoices = JSON.parse(localStorage.getItem("invoices") || "[]");
+    const search = document.getElementById("invoiceSearch").value.trim().toLowerCase();
+
+    let invoices = JSON.parse(localStorage.getItem("invoices") || "[]");
+
+    // Keep newest first even while searching
+    invoices.sort((a, b) => new Date(b.date) - new Date(a.date));
+
     renderInvoices(invoices, search);
 }
 
