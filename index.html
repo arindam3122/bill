@@ -871,8 +871,9 @@ function renderInvoices(invoices, search = "") {
             <b>📅 Created:</b> ${formatDateTime12H(inv.date)}<br>
             <b>💰 Total:</b> ₹${inv.total}
             <div style="margin-top:8px;">
-                <button class="action-btn edit" onclick="viewInvoice(${i})">View</button>
-                <button class="action-btn delete" onclick="confirmDelete(${i})">Delete</button>
+            <button class="action-btn edit" onclick="editInvoice(${i})">Edit</button>
+            <button class="action-btn edit" onclick="viewInvoice(${i})">View</button>
+            <button class="action-btn delete" onclick="confirmDelete(${i})">Delete</button>
             </div>
         `;
 
@@ -1223,7 +1224,98 @@ function sortTableByDate() {
     // Re-append sorted rows
     rows.forEach(row => tbody.appendChild(row));
 }
+let editingInvoiceIndex = null;
 
+function editInvoice(index) {
+    const invoices = JSON.parse(localStorage.getItem("invoices"));
+    const inv = invoices[index];
+
+    editingInvoiceIndex = index;
+
+    eiInvoiceNo.value = inv.invoiceNo;   // 🔒 locked
+    eiCustomer.value = inv.customer || "";
+    eiDate.value = inv.date.slice(0,16);
+    eiDeduction.value = inv.deduction || 0;
+
+    eiItems.innerHTML = "";
+
+    inv.items.forEach(item => {
+        addEditInvoiceItem(item);
+    });
+
+    editInvoiceModal.style.display = "flex";
+}
+
+function addEditInvoiceItem(item = {}) {
+    const div = document.createElement("div");
+    div.style.display = "grid";
+    div.style.gridTemplateColumns = "140px 1fr 100px 80px 100px";
+    div.style.gap = "8px";
+    div.style.marginBottom = "8px";
+
+    div.innerHTML = `
+        <input type="date" value="${item.date ? item.date.split('/').reverse().join('-') : ''}">
+        <input value="${item.product || ''}">
+        <input type="number" value="${item.price || ''}">
+        <input type="number" value="${item.qty || ''}">
+        <input type="number" value="${item.amount || ''}" readonly>
+    `;
+
+    const inputs = div.querySelectorAll("input");
+
+    function recalc() {
+        const price = Number(inputs[2].value);
+        const qty = Number(inputs[3].value);
+        inputs[4].value = price && qty ? price * qty : "";
+    }
+
+    inputs[2].addEventListener("input", recalc);
+    inputs[3].addEventListener("input", recalc);
+
+    eiItems.appendChild(div);
+}
+
+function saveEditedInvoice() {
+    const invoices = JSON.parse(localStorage.getItem("invoices"));
+    const inv = invoices[editingInvoiceIndex];
+
+    let total = 0;
+    const items = [];
+
+    document.querySelectorAll("#eiItems > div").forEach(row => {
+        const i = row.querySelectorAll("input");
+
+        if (!i[0].value || !i[1].value) return;
+
+        const amount = Number(i[4].value);
+
+        items.push({
+            date: formatDateToDDMMYYYY(i[0].value),
+            product: i[1].value,
+            price: Number(i[2].value),
+            qty: Number(i[3].value),
+            amount
+        });
+
+        total += amount;
+    });
+
+    inv.customer = eiCustomer.value;
+    inv.date = new Date(eiDate.value).toISOString();
+    inv.items = items;
+    inv.total = total;
+    inv.deduction = Number(eiDeduction.value) || 0;
+
+    localStorage.setItem("invoices", JSON.stringify(invoices));
+
+    closeEditInvoice();
+    openHistory();
+    showToast("Invoice updated successfully");
+}
+
+function closeEditInvoice() {
+    editInvoiceModal.style.display = "none";
+}
 </script>
 <!-- ERROR MODAL -->
 <div class="modal" id="errorModal">
@@ -1332,7 +1424,37 @@ function sortTableByDate() {
     <div class="modal-actions" id="viewActions"></div>
   </div>
 </div>
+<!-- EDIT INVOICE MODAL -->
+<div class="modal" id="editInvoiceModal">
+  <div class="modal-content" style="width:520px;max-height:80vh;overflow:auto;">
+    <h3>✏️ Edit Invoice</h3>
 
+    <!-- Invoice No (LOCKED) -->
+    <input id="eiInvoiceNo" disabled>
+
+    <input id="eiCustomer" placeholder="Customer Name">
+    <input type="datetime-local" id="eiDate">
+
+    <hr>
+    <h4>Items</h4>
+    <div id="eiItems"></div>
+
+    <button class="add-btn" onclick="addEditInvoiceItem()">➕ Add Item</button>
+
+    <hr>
+    <input
+      type="number"
+      id="eiDeduction"
+      placeholder="Deduction"
+      class="big-input"
+    >
+
+    <div class="modal-actions">
+      <button class="add-btn" onclick="saveEditedInvoice()">Save Changes</button>
+      <button class="delete" onclick="closeEditInvoice()">Cancel</button>
+    </div>
+  </div>
+</div>
 <!-- TOAST -->
 <div id="toast" class="toast">
     ✅ Invoice deleted successfully
