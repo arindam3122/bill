@@ -444,7 +444,7 @@ function formatDateToDDMMYYYY(dateInput) {
 
 let total = 0;
 let editRowRef = null;
-
+let deleteRowRef = null;
 /* INVOICE NUMBER */
 const invoiceNumber =
     "INV-" +
@@ -504,7 +504,7 @@ function addItem() {
         <td class="amount">${amount}</td>
         <td>
             <button class="action-btn edit" onclick="openEdit(this)">Edit</button>
-            <button class="action-btn delete" onclick="deleteRow(this)">Delete</button>
+            <button class="action-btn delete" onclick="askDelete(this)">Delete</button>
         </td>
     `;
 
@@ -526,7 +526,24 @@ function deleteRow(btn) {
     btn.closest("tr").remove();
     updateTotal();
 }
+function askDelete(btn) {
+    deleteRowRef = btn.closest("tr");
+    document.getElementById("deleteConfirmModal").style.display = "flex";
+}
 
+function confirmDeleteYes() {
+    if (deleteRowRef) {
+        deleteRowRef.remove();
+        updateTotal();
+        showToast("Item deleted successfully");
+    }
+    closeDeleteConfirm();
+}
+
+function closeDeleteConfirm() {
+    document.getElementById("deleteConfirmModal").style.display = "none";
+    deleteRowRef = null;
+}
 /* MODAL EDIT */
 function openEdit(btn) {
     editRowRef = btn.closest("tr");
@@ -1541,7 +1558,18 @@ function closeEditInvoice() {
   style="display:none"
   onchange="restoreInvoices(event)"
 >
+<!-- DELETE CONFIRM MODAL -->
+<div class="modal" id="deleteConfirmModal">
+  <div class="modal-content invoice-view-modal">
+    <h3>⚠️ Confirm Delete</h3>
+    <p>Are you sure you want to delete this item?</p>
 
+    <div class="modal-actions">
+      <button class="delete" onclick="confirmDeleteYes()">Yes, Delete</button>
+      <button class="add-btn" onclick="closeDeleteConfirm()">Cancel</button>
+    </div>
+  </div>
+</div>
 <style>
 .toast {
     position: fixed;
