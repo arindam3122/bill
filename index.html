@@ -256,6 +256,32 @@ th { background: #f4f4f4; }
 .btn-print {
     background: linear-gradient(135deg, #ff9800, #ef6c00);
 }
+/* 🧾 Invoice View / Delete Modal (Narrow & Clean) */
+.invoice-view-modal {
+    width: 420px;
+    max-width: 90vw;
+    padding: 22px 24px;
+    border-radius: 14px;
+}
+
+/* Improve spacing inside */
+.invoice-view-modal h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+}
+
+.invoice-view-modal p {
+    margin: 6px 0;
+    line-height: 1.5;
+}
+
+/* Buttons aligned nicely */
+.invoice-view-modal .modal-actions {
+    margin-top: 18px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
 
 </style>
 </head>
@@ -1196,15 +1222,23 @@ function restoreInvoices(event) {
 
 <!-- VIEW / DELETE MODAL -->
 <div class="modal" id="viewModal">
-  <div class="modal-content" style="width:420px;">
+  <div class="modal-content invoice-view-modal">
     <div id="viewContent"></div>
     <div class="modal-actions" id="viewActions"></div>
   </div>
 </div>
+
 <!-- TOAST -->
 <div id="toast" class="toast">
     ✅ Invoice deleted successfully
 </div>
+<input
+  type="file"
+  id="restoreFile"
+  accept=".json"
+  style="display:none"
+  onchange="restoreInvoices(event)"
+>
 
 <style>
 .toast {
