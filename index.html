@@ -282,6 +282,41 @@ th { background: #f4f4f4; }
     justify-content: flex-end;
     gap: 12px;
 }
+/* 📋 Menu Modal */
+.menu-modal {
+    width: 380px;
+    max-width: 90vw;
+    max-height: 80vh;
+    overflow-y: auto;
+    border-radius: 14px;
+}
+
+#menuList {
+    margin-top: 12px;
+}
+
+.menu-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    background: #f7f7f7;
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+.menu-item span:last-child {
+    color: #2e7d32;
+}
+/* 📋 View Menu Button */
+.btn-menu {
+    background: linear-gradient(135deg, #00bcd4, #006064);
+}
+
+/* Optional: slightly different hover glow */
+.btn-menu:hover {
+    filter: brightness(1.1);
+}
 
 </style>
 </head>
@@ -359,6 +394,10 @@ th { background: #f4f4f4; }
     <button class="btn btn-print" onclick="printPDF()">
         🖨️ Print PDF
     </button>
+    <button class="btn btn-menu" onclick="openMenuModal()">
+    📋 View Menu
+    </button>
+
 </div>
 
 </div>
@@ -1136,7 +1175,33 @@ function restoreInvoices(event) {
 
     reader.readAsText(file);
 }
+function openMenuModal() {
+    document.getElementById("menuModal").style.display = "flex";
+    renderMenuList();
+}
 
+function closeMenuModal() {
+    document.getElementById("menuModal").style.display = "none";
+}
+
+function renderMenuList() {
+    const list = document.getElementById("menuList");
+    const search = document.getElementById("menuSearch").value.toLowerCase();
+
+    list.innerHTML = "";
+
+    for (const item in productMaster) {
+        if (!item.toLowerCase().includes(search)) continue;
+
+        const div = document.createElement("div");
+        div.className = "menu-item";
+        div.innerHTML = `
+            <span>${item}</span>
+            <span>₹${productMaster[item]}</span>
+        `;
+        list.appendChild(div);
+    }
+}
 
 </script>
 <!-- ERROR MODAL -->
@@ -1216,6 +1281,25 @@ function restoreInvoices(event) {
     <div class="modal-actions">
       <button class="add-btn" onclick="saveManualInvoice()">Save</button>
       <button class="delete" onclick="closeAddInvoiceModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+<div class="modal" id="menuModal">
+  <div class="modal-content menu-modal">
+    <h3>📋 Menu</h3>
+
+    <input
+      type="text"
+      id="menuSearch"
+      placeholder="🔍 Search item"
+      oninput="renderMenuList()"
+      class="history-search"
+    >
+
+    <div id="menuList"></div>
+
+    <div class="modal-actions">
+      <button class="btn btn-print" onclick="closeMenuModal()">Close</button>
     </div>
   </div>
 </div>
