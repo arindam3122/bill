@@ -206,6 +206,56 @@ th { background: #f4f4f4; }
     box-shadow: 0 0 0 3px rgba(41, 121, 255, 0.2);
     background: #fff;
 }
+/* 🔥 Universal Button Style */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 22px;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    letter-spacing: 0.3px;
+
+    box-shadow: 0 8px 18px rgba(0,0,0,0.18);
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease,
+        filter 0.2s ease;
+}
+
+.btn:hover {
+    transform: translateY(-3px) scale(1.03);
+    box-shadow: 0 14px 30px rgba(0,0,0,0.25);
+    filter: brightness(1.08);
+}
+
+.btn:active {
+    transform: translateY(0) scale(0.97);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+}
+/* ➕ Add Button */
+.btn-add-main {
+    background: linear-gradient(135deg, #4caf50, #2e7d32);
+}
+
+/* ⬇️ Download PDF */
+.btn-download {
+    background: linear-gradient(135deg, #3f51b5, #1a237e);
+}
+
+/* 📚 Invoice History */
+.btn-history {
+    background: linear-gradient(135deg, #3949ab, #283593);
+}
+
+/* 🖨️ Print PDF */
+.btn-print {
+    background: linear-gradient(135deg, #ff9800, #ef6c00);
+}
 
 </style>
 </head>
@@ -235,7 +285,10 @@ th { background: #f4f4f4; }
 
     <input type="number" id="price" placeholder="Price">
     <input type="number" id="qty" placeholder="Qty" value="1">
-    <button class="add-btn" onclick="addItem()">Add</button>
+    <button class="btn btn-add-main" onclick="addItem()">
+    ➕ Add
+   </button>
+
 </div>
 
 
@@ -269,10 +322,19 @@ th { background: #f4f4f4; }
 
 
 <div class="actions">
-    <button class="download" onclick="downloadPDF()">Download PDF</button>
-    <button class="download" onclick="openHistory()">Invoice History</button>
-    <button class="print" onclick="printPDF()">Print PDF</button>
+    <button class="btn btn-download" onclick="downloadPDF()">
+        ⬇️ Download PDF
+    </button>
+
+    <button class="btn btn-history" onclick="openHistory()">
+        📚 Invoice History
+    </button>
+
+    <button class="btn btn-print" onclick="printPDF()">
+        🖨️ Print PDF
+    </button>
 </div>
+
 </div>
 
 <!-- EDIT MODAL -->
