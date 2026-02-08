@@ -148,6 +148,64 @@ th { background: #f4f4f4; }
     box-sizing: border-box;
     height: 44px;
 }
+/* 🔥 Invoice History Action Buttons */
+.history-actions {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+.history-actions .add-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    color: #fff;
+    box-shadow: 0 6px 14px rgba(0,0,0,0.15);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.history-actions .add-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 22px rgba(0,0,0,0.2);
+}
+
+/* Individual button colors */
+.btn-add {
+    background: linear-gradient(135deg, #00c853, #2e7d32);
+}
+
+.btn-backup {
+    background: linear-gradient(135deg, #2979ff, #0d47a1);
+}
+
+.btn-restore {
+    background: linear-gradient(135deg, #ff9100, #ef6c00);
+}
+/* 🔍 Search Bar Styling */
+.history-search {
+    width: 100%;
+    padding: 12px 16px;
+    border-radius: 12px;
+    border: 1px solid #ddd;
+    font-size: 14px;
+    outline: none;
+    margin-bottom: 14px;
+    background: #f9fbff;
+    transition: border 0.2s ease, box-shadow 0.2s ease;
+}
+
+.history-search:focus {
+    border-color: #2979ff;
+    box-shadow: 0 0 0 3px rgba(41, 121, 255, 0.2);
+    background: #fff;
+}
 
 </style>
 </head>
@@ -168,10 +226,18 @@ th { background: #f4f4f4; }
     <input type="date" id="date">
     <input list="products" id="product" placeholder="Product name">
     <datalist id="products"></datalist>
+
+    <!-- NEW -->
+    <select id="plateType">
+        <option value="full">Full Plate</option>
+        <option value="half">Half Plate</option>
+    </select>
+
     <input type="number" id="price" placeholder="Price">
     <input type="number" id="qty" placeholder="Qty" value="1">
     <button class="add-btn" onclick="addItem()">Add</button>
 </div>
+
 
 <table id="billTable">
 <thead>
@@ -276,14 +342,23 @@ function addItem() {
         return;
     }
 
-    const amount = price.value * qty.value;
+    const isSnack = noHalfPlateItems.includes(product.value);
+
+    let plateLabel = "";
+    if (!isSnack) {
+        plateLabel = plateType.value === "half" ? " (Half)" : " (Full)";
+    }
+
+    const finalPrice = Number(price.value);
+    const quantity = Number(qty.value);
+    const amount = finalPrice * quantity;
 
     const row = document.createElement("tr");
     row.innerHTML = `
         <td>${formatDateToDDMMYYYY(date.value)}</td>
-        <td>${product.value}</td>
-        <td>${price.value}</td>
-        <td>${qty.value}</td>
+        <td>${product.value}${plateLabel}</td>
+        <td>${finalPrice}</td>
+        <td>${quantity}</td>
         <td class="amount">${amount}</td>
         <td>
             <button class="action-btn edit" onclick="openEdit(this)">Edit</button>
@@ -294,11 +369,15 @@ function addItem() {
     billTable.querySelector("tbody").appendChild(row);
     updateTotal();
 
+    // Reset
     product.value = "";
     price.value = "";
     qty.value = 1;
+    plateType.value = "full";
     product.focus();
 }
+
+
 
 function deleteRow(btn) {
     btn.closest("tr").remove();
@@ -536,6 +615,7 @@ function saveInvoiceToLocal() {
     localStorage.setItem("invoices", JSON.stringify(invoices));
 }
 // PRODUCT MASTER pricing
+const HALF_PLATE_FACTOR = 0.5; // 50% price
 const productMaster = {
     "Veg Momo (8pieces)": 40,
     "Mathura cake": 10,
@@ -563,6 +643,15 @@ const productMaster = {
     "Mix Veg (1plate)": 170,
     "Chilli Paneer (1plate)": 160,
 };
+const noHalfPlateItems = [
+    "Samosa",
+    "Beguni",
+    "Vegetable Chop",
+    "Alu Chop",
+    "Motorsutir Kachuri (per piece)",
+    "Paneer Tikka (per piece)",
+    "Patisapta (1 piece)"
+];
 
 // Populate datalist
 const productList = document.getElementById("products");
@@ -573,13 +662,32 @@ for (let p in productMaster) {
 }
 
 // Auto-fill price when product selected
-product.addEventListener("change", () => {
-    if (productMaster[product.value]) {
-        price.value = productMaster[product.value];
-        qty.focus();
-        autoCalculateAmount();
+product.addEventListener("change", updatePriceByPlate);
+plateType.addEventListener("change", updatePriceByPlate);
+
+function updatePriceByPlate() {
+    const basePrice = productMaster[product.value];
+    if (!basePrice) return;
+
+    // 🚫 Disable half plate for snacks
+    if (noHalfPlateItems.includes(product.value)) {
+        plateType.value = "full";
+        plateType.disabled = true;
+        price.value = basePrice;
+    } else {
+        plateType.disabled = false;
+
+        if (plateType.value === "half") {
+            price.value = Math.round(basePrice * HALF_PLATE_FACTOR);
+        } else {
+            price.value = basePrice;
+        }
     }
-});
+
+    qty.focus();
+}
+
+
 function autoCalculateAmount() {
     if (!price.value || !qty.value) return;
     // Reserved for future live preview if needed
@@ -948,24 +1056,21 @@ function restoreInvoices(event) {
   <div class="modal-content" style="width:420px;">
 <h3>📚 Invoice History</h3>
 
-<button class="add-btn" onclick="openAddInvoiceModal()">➕ Add Past Invoice</button>
+<div class="history-actions">
+    <button class="add-btn btn-add" onclick="openAddInvoiceModal()">
+        ➕ Add Past Invoice
+    </button>
 
-<button class="add-btn" style="margin-top:6px;" onclick="backupInvoices()">
-⬇️ Backup Invoices
-</button>
+    <button class="add-btn btn-backup" onclick="backupInvoices()">
+        ⬇️ Backup Invoices
+    </button>
 
-<input
-  type="file"
-  id="restoreFile"
-  accept=".json"
-  style="display:none"
-  onchange="restoreInvoices(event)"
->
+    <button class="add-btn btn-restore"
+        onclick="document.getElementById('restoreFile').click()">
+        ⬆️ Restore Invoices
+    </button>
+</div>
 
-<button class="add-btn" style="margin-top:6px;"
-  onclick="document.getElementById('restoreFile').click()">
-⬆️ Restore Invoices
-</button>
 
 <hr>
 <input
@@ -973,13 +1078,9 @@ function restoreInvoices(event) {
   id="invoiceSearch"
   placeholder="🔍 Search by Invoice Number"
   oninput="searchInvoices()"
-  style="
-    width:100%;
-    padding:8px;
-    margin-bottom:10px;
-    border-radius:6px;
-    border:1px solid #ccc;"
->
+  class="history-search"
+/>
+
 
 <div id="historyList"></div>
 
