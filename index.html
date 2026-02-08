@@ -494,6 +494,7 @@ function addItem() {
     `;
 
     billTable.querySelector("tbody").appendChild(row);
+    sortTableByDate();
     updateTotal();
 
     // Reset
@@ -529,6 +530,7 @@ function saveEdit() {
     editRowRef.cells[3].innerText = mQty.value;
     editRowRef.cells[4].innerText = amount;
     updateTotal();
+    sortTableByDate();
     closeModal();
 }
 
@@ -1201,6 +1203,22 @@ function renderMenuList() {
         `;
         list.appendChild(div);
     }
+}
+function sortTableByDate() {
+    const tbody = document.querySelector("#billTable tbody");
+
+    const rows = Array.from(tbody.querySelectorAll("tr"));
+
+    rows.sort((a, b) => {
+
+        const dateA = new Date(a.cells[0].innerText.split("/").reverse().join("-"));
+        const dateB = new Date(b.cells[0].innerText.split("/").reverse().join("-"));
+
+        return dateA - dateB; // ascending
+    });
+
+    // Re-append sorted rows
+    rows.forEach(row => tbody.appendChild(row));
 }
 
 </script>
