@@ -956,8 +956,10 @@ function renderInvoices(invoices, search = "") {
     invoices.forEach(inv => {
         const invoiceNoMatch = inv.invoiceNo.toLowerCase().includes(term);
         const customerMatch = (inv.customer || "").toLowerCase().includes(term);
-
         if (term && !invoiceNoMatch && !customerMatch) return;
+
+        const deduction = Number(inv.deduction) || 0;
+        const payable = inv.total - deduction;
 
         const card = document.createElement("div");
         card.style.border = "1px solid #ddd";
@@ -969,18 +971,21 @@ function renderInvoices(invoices, search = "") {
             <b>🧾 Invoice No:</b> ${inv.invoiceNo}<br>
             <b>👤 Customer:</b> ${inv.customer || "-"}<br>
             <b>📅 Created:</b> ${formatDateTime12H(inv.date)}<br>
-            <b>💰 Total:</b> ₹${inv.total}
+
+            <b>💰 Total:</b> ₹${inv.total}<br>
+            ${
+                deduction > 0
+                    ? `<b style="color:#2e7d32;">💵 Payable:</b> ₹${payable}<br>`
+                    : ""
+            }
 
             <div style="margin-top:8px;">
                 <button class="action-btn edit"
                     onclick="editInvoiceByNo('${inv.invoiceNo}')">Edit</button>
-
                 <button class="action-btn edit"
                     onclick="viewInvoiceByNo('${inv.invoiceNo}')">View</button>
-
                 <button class="action-btn download-pdf"
                     onclick="downloadInvoiceByNo('${inv.invoiceNo}')">⬇️ PDF</button>
-
                 <button class="action-btn delete"
                     onclick="deleteInvoiceByNo('${inv.invoiceNo}')">Delete</button>
             </div>
@@ -989,7 +994,6 @@ function renderInvoices(invoices, search = "") {
         list.appendChild(card);
     });
 }
-
 
 function searchInvoices() {
     const search = document.getElementById("invoiceSearch").value.trim().toLowerCase();
