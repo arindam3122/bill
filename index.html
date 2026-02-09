@@ -503,7 +503,7 @@ function addItem() {
         <td>${quantity}</td>
         <td class="amount">${amount}</td>
         <td>
-            <button class="action-btn edit" onclick="openEdit(this)">Edit</button>
+            <button class="action-btn edit" onclick="editInvoiceByNo('${inv.invoiceNo}')">Edit</button>
             <button class="action-btn delete" onclick="askDelete(this)">Delete</button>
         </td>
     `;
@@ -743,13 +743,15 @@ doc.text(
     ? doc.save("invoice.pdf")
     : (doc.autoPrint(), window.open(doc.output("bloburl")));
 }
-function downloadPastInvoice(index) {
+function downloadInvoiceByNo(invoiceNo) {
     const invoices = JSON.parse(localStorage.getItem("invoices") || "[]");
-    const inv = invoices[index];
+    const inv = invoices.find(i => i.invoiceNo === invoiceNo);
+    if (!inv) return;
 
     loadInvoiceToEditor(inv);
     generatePDF("download");
 }
+
 function loadInvoiceToEditor(inv) {
     // Set invoice header
     customerName.value = inv.customer || "";
@@ -951,14 +953,11 @@ function renderInvoices(invoices, search = "") {
 
     const term = search.toLowerCase();
 
-    invoices.forEach((inv, i) => {
+    invoices.forEach(inv => {
         const invoiceNoMatch = inv.invoiceNo.toLowerCase().includes(term);
         const customerMatch = (inv.customer || "").toLowerCase().includes(term);
 
         if (term && !invoiceNoMatch && !customerMatch) return;
-
-        const highlightedInvoice = highlight(inv.invoiceNo, term);
-        const highlightedCustomer = highlight(inv.customer || "-", term);
 
         const card = document.createElement("div");
         card.style.border = "1px solid #ddd";
@@ -967,21 +966,30 @@ function renderInvoices(invoices, search = "") {
         card.style.marginBottom = "12px";
 
         card.innerHTML = `
-            <b>🧾 Invoice No:</b> ${highlightedInvoice}<br>
-            <b>👤 Customer:</b> ${highlightedCustomer}<br>
+            <b>🧾 Invoice No:</b> ${inv.invoiceNo}<br>
+            <b>👤 Customer:</b> ${inv.customer || "-"}<br>
             <b>📅 Created:</b> ${formatDateTime12H(inv.date)}<br>
             <b>💰 Total:</b> ₹${inv.total}
+
             <div style="margin-top:8px;">
-                <button class="action-btn edit" onclick="editInvoice(${i})">Edit</button>
-                <button class="action-btn edit" onclick="viewInvoice(${i})">View</button>
-                <button class="action-btn download-pdf" onclick="downloadPastInvoice(${i})">⬇️ Download PDF</button>
-                <button class="action-btn delete" onclick="confirmDelete(${i})">Delete</button>
+                <button class="action-btn edit"
+                    onclick="editInvoiceByNo('${inv.invoiceNo}')">Edit</button>
+
+                <button class="action-btn edit"
+                    onclick="viewInvoiceByNo('${inv.invoiceNo}')">View</button>
+
+                <button class="action-btn download-pdf"
+                    onclick="downloadInvoiceByNo('${inv.invoiceNo}')">⬇️ PDF</button>
+
+                <button class="action-btn delete"
+                    onclick="deleteInvoiceByNo('${inv.invoiceNo}')">Delete</button>
             </div>
         `;
 
         list.appendChild(card);
     });
 }
+
 
 function searchInvoices() {
     const search = document.getElementById("invoiceSearch").value.trim().toLowerCase();
@@ -1004,9 +1012,14 @@ function closeHistory() {
     historyModal.style.display = "none";
 }
 
-function viewInvoice(index) {
-    const invoices = JSON.parse(localStorage.getItem("invoices"));
-    const inv = invoices[index];
+function viewInvoiceByNo(invoiceNo) {
+    const invoices = JSON.parse(localStorage.getItem("invoices") || "[]");
+
+    const inv = invoices.find(i => i.invoiceNo === invoiceNo);
+    if (!inv) {
+        alert("Invoice not found");
+        return;
+    }
 
     const deduction = Number(inv.deduction) || 0;
     const payable = inv.total - deduction;
@@ -1018,24 +1031,24 @@ function viewInvoice(index) {
         <p><b>Customer:</b> ${inv.customer || "-"}</p>
         <p><b>Created On:</b> ${formatDateTime12H(inv.date)}</p>
 
-        <table style="width:100%;font-size:13px;border-collapse:collapse;margin-top:10px;">
+        <table style="width:100%;border-collapse:collapse;margin-top:10px;">
             <tr style="background:#f4f4f4;">
-                <th style="padding:6px;">Date</th>
-                <th style="padding:6px;">Product</th>
-                <th style="padding:6px;">Price</th>
-                <th style="padding:6px;">Qty</th>
-                <th style="padding:6px;">Amount</th>
+                <th>Date</th>
+                <th>Product</th>
+                <th>Price</th>
+                <th>Qty</th>
+                <th>Amount</th>
             </tr>
     `;
 
     inv.items.forEach(it => {
         html += `
             <tr>
-                <td style="padding:6px;text-align:center;">${it.date}</td>
-                <td style="padding:6px;">${it.product}</td>
-                <td style="padding:6px;text-align:center;">${it.price}</td>
-                <td style="padding:6px;text-align:center;">${it.qty}</td>
-                <td style="padding:6px;text-align:center;">${it.amount}</td>
+                <td>${it.date}</td>
+                <td>${it.product}</td>
+                <td>${it.price}</td>
+                <td>${it.qty}</td>
+                <td>${it.amount}</td>
             </tr>
         `;
     });
@@ -1049,8 +1062,8 @@ function viewInvoice(index) {
 
     if (deduction > 0) {
         html += `
-            <p style="color:#c62828;"><b>Deduction:</b> ₹${deduction}</p>
-            <p style="color:#2e7d32;font-size:16px;">
+            <p style="color:red;"><b>Deduction:</b> ₹${deduction}</p>
+            <p style="color:green;font-size:16px;">
                 <b>Payable:</b> ₹${payable}
             </p>
         `;
@@ -1059,13 +1072,10 @@ function viewInvoice(index) {
     html += `</div>`;
 
     viewContent.innerHTML = html;
-
-    viewActions.innerHTML = `
-        <button class="add-btn" onclick="closeView()">Close</button>
-    `;
-
+    viewActions.innerHTML = `<button class="add-btn" onclick="closeView()">Close</button>`;
     viewModal.style.display = "flex";
 }
+
 
 
 
@@ -1087,16 +1097,17 @@ function confirmDelete(index) {
     viewModal.style.display = "flex";
 }
 
-function deleteInvoice(index) {
-    const invoices = JSON.parse(localStorage.getItem("invoices"));
-    invoices.splice(index, 1);
-    localStorage.setItem("invoices", JSON.stringify(invoices));
+function deleteInvoiceByNo(invoiceNo) {
+    let invoices = JSON.parse(localStorage.getItem("invoices") || "[]");
 
+    invoices = invoices.filter(i => i.invoiceNo !== invoiceNo);
+
+    localStorage.setItem("invoices", JSON.stringify(invoices));
     closeView();
     openHistory();
-
     showToast("Invoice deleted successfully");
 }
+
 
 function formatDateTime12H(isoString) {
     const d = new Date(isoString);
@@ -1331,27 +1342,32 @@ function sortTableByDate() {
     // Re-append sorted rows
     rows.forEach(row => tbody.appendChild(row));
 }
-let editingInvoiceIndex = null;
+let editingInvoiceNo = null;
+function editInvoiceByNo(invoiceNo) {
+    const invoices = JSON.parse(localStorage.getItem("invoices") || "[]");
 
-function editInvoice(index) {
-    const invoices = JSON.parse(localStorage.getItem("invoices"));
-    const inv = invoices[index];
+    const inv = invoices.find(i => i.invoiceNo === invoiceNo);
+    if (!inv) {
+        alert("Invoice not found");
+        return;
+    }
 
-    editingInvoiceIndex = index;
+    editingInvoiceNo = invoiceNo;
 
-    eiInvoiceNo.value = inv.invoiceNo;   // 🔒 locked
+    // Fill header fields
+    eiInvoiceNo.value = inv.invoiceNo; // locked
     eiCustomer.value = inv.customer || "";
-    eiDate.value = inv.date.slice(0,16);
+    eiDate.value = inv.date.slice(0, 16);
     eiDeduction.value = inv.deduction || 0;
 
+    // Clear items
     eiItems.innerHTML = "";
 
-    inv.items.forEach(item => {
-        addEditInvoiceItem(item);
-    });
+    inv.items.forEach(item => addEditInvoiceItem(item));
 
     editInvoiceModal.style.display = "flex";
 }
+
 
 function addEditInvoiceItem(item = {}) {
     const div = document.createElement("div");
@@ -1383,42 +1399,76 @@ function addEditInvoiceItem(item = {}) {
 }
 
 function saveEditedInvoice() {
-    const invoices = JSON.parse(localStorage.getItem("invoices"));
-    const inv = invoices[editingInvoiceIndex];
+    if (!editingInvoiceNo) {
+        alert("No invoice selected for editing");
+        return;
+    }
+
+    const invoices = JSON.parse(localStorage.getItem("invoices") || "[]");
+
+    const inv = invoices.find(i => i.invoiceNo === editingInvoiceNo);
+    if (!inv) {
+        alert("Invoice not found");
+        return;
+    }
+
+    if (!eiDate.value) {
+        alert("Invoice date is required");
+        return;
+    }
 
     let total = 0;
     const items = [];
 
     document.querySelectorAll("#eiItems > div").forEach(row => {
-        const i = row.querySelectorAll("input");
+        const inputs = row.querySelectorAll("input");
 
-        if (!i[0].value || !i[1].value) return;
+        const date = inputs[0].value;
+        const product = inputs[1].value;
+        const price = Number(inputs[2].value);
+        const qty = Number(inputs[3].value);
 
-        const amount = Number(i[4].value);
+        if (!date || !product || !price || !qty) return;
+
+        const amount = price * qty;
+        total += amount;
 
         items.push({
-            date: formatDateToDDMMYYYY(i[0].value),
-            product: i[1].value,
-            price: Number(i[2].value),
-            qty: Number(i[3].value),
+            date: formatDateToDDMMYYYY(date),
+            product,
+            price,
+            qty,
             amount
         });
-
-        total += amount;
     });
 
-    inv.customer = eiCustomer.value;
+    if (items.length === 0) {
+        alert("Invoice must have at least one item");
+        return;
+    }
+
+    const deduction = Number(eiDeduction.value) || 0;
+    if (deduction > total) {
+        alert("Deduction cannot exceed total");
+        return;
+    }
+
+    // ✅ Update invoice safely
+    inv.customer = eiCustomer.value || "";
     inv.date = new Date(eiDate.value).toISOString();
     inv.items = items;
     inv.total = total;
-    inv.deduction = Number(eiDeduction.value) || 0;
+    inv.deduction = deduction;
 
     localStorage.setItem("invoices", JSON.stringify(invoices));
 
+    editingInvoiceNo = null;
+
     closeEditInvoice();
     openHistory();
-    showToast("Invoice updated successfully");
+    showToast("Invoice updated successfully ✅");
 }
+
 
 function closeEditInvoice() {
     editInvoiceModal.style.display = "none";
