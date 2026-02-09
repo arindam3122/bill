@@ -502,10 +502,11 @@ function addItem() {
         <td>${finalPrice}</td>
         <td>${quantity}</td>
         <td class="amount">${amount}</td>
-        <td>
-            <button class="action-btn edit" onclick="editInvoiceByNo('${inv.invoiceNo}')">Edit</button>
-            <button class="action-btn delete" onclick="askDelete(this)">Delete</button>
-        </td>
+<td>
+  <button class="action-btn edit" onclick="openEdit(this)">Edit</button>
+  <button class="action-btn delete" onclick="askDelete(this)">Delete</button>
+</td>
+
     `;
 
     billTable.querySelector("tbody").appendChild(row);
