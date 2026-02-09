@@ -441,6 +441,13 @@ function formatDateToDDMMYYYY(dateInput) {
     const year = d.getFullYear();
     return `${day}/${month}/${year}`;
 }
+function formatForDatetimeLocal(isoString) {
+    const d = new Date(isoString);
+
+    const pad = n => String(n).padStart(2, "0");
+
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
 
 let total = 0;
 let editRowRef = null;
@@ -1362,7 +1369,7 @@ function editInvoiceByNo(invoiceNo) {
     // Fill header fields
     eiInvoiceNo.value = inv.invoiceNo; // locked
     eiCustomer.value = inv.customer || "";
-    eiDate.value = inv.date.slice(0, 16);
+    eiDate.value = formatForDatetimeLocal(inv.date);
     eiDeduction.value = inv.deduction || 0;
 
     // Clear items
