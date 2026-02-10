@@ -772,36 +772,34 @@ function generatePDF(action) {
   const finalY = doc.lastAutoTable.finalY + 2;
 // ================= CENTERED & DESIGNED UPI QR =================
 const qrSize = 50;
-
-// Center of page (A4 width = 210)
 const centerX = 105;
+const qrY = finalY + 22;
 const qrX = centerX - qrSize / 2;
-const qrY = finalY + 22; // more space below table
 
 // Card background
 doc.setFillColor(245, 247, 250);
 doc.roundedRect(centerX - 45, qrY - 12, 90, 82, 6, 6, "F");
 
 // Title
+doc.setCharSpace(0); // ✅ IMPORTANT
 doc.setFontSize(11);
 doc.setTextColor(56, 142, 60);
-doc.text("Scan & Pay via UPI", centerX, qrY - 6, { align: "center" });
+doc.text("Scan & Pay via UPI", centerX, qrY - 4, { align: "center" });
 
 // QR Image
 const qrUrl = getUpiQrUrl(payable);
 doc.addImage(qrUrl, "PNG", qrX, qrY, qrSize, qrSize);
 
-// Amount
+// Amount (FIXED – no ghost 1)
+doc.setCharSpace(0); // 🔥 FIX
 doc.setFontSize(10);
 doc.setTextColor(0, 0, 0);
-doc.text(`Amount: ₹${payable}`, centerX, qrY + qrSize + 8, { align: "center" });
 
 // UPI ID
+doc.setCharSpace(0);
 doc.setFontSize(9);
 doc.setTextColor(100, 100, 100);
-doc.text(`UPI ID: ${UPI_ID}`, centerX, qrY + qrSize + 14, { align: "center" });
-  doc.setDrawColor(200, 230, 201);
-  doc.line(14, finalY, 196, finalY);
+doc.text(`UPI ID: ${UPI_ID}`, centerX, qrY + qrSize + 6, { align: "center" });
 
   // ===== FOOTER NOTE =====
 doc.setFontSize(9);
