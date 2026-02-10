@@ -3,10 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <title>Billing System</title>
-
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <!-- jsPDF + AutoTable -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
 <style>
 body {
@@ -333,6 +334,29 @@ th { background: #f4f4f4; }
 .action-btn.download-pdf:active {
     transform: scale(0.96);
 }
+.custom-date {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+}
+
+/* Calendar popup */
+.flatpickr-calendar {
+  border-radius: 14px;
+  box-shadow: 0 15px 40px rgba(0,0,0,0.18);
+}
+
+/* Selected date */
+.flatpickr-day.selected {
+  background: #4f46e5;
+  border-color: #4f46e5;
+}
+
+/* Today */
+.flatpickr-day.today {
+  border-color: #22c55e;
+}
 </style>
 </head>
 
@@ -349,7 +373,12 @@ th { background: #f4f4f4; }
 <input type="text" id="customerName" class="customer-input" placeholder="Customer Name">
 
 <div class="inputs">
-    <input type="date" id="date">
+    <input
+  type="text"
+  id="date"
+  placeholder="dd-mm-yyyy"
+  class="custom-date"
+ />
     <input list="products" id="product" placeholder="Product name">
     <datalist id="products"></datalist>
 
@@ -1490,6 +1519,12 @@ function saveEditedInvoice() {
 function closeEditInvoice() {
     editInvoiceModal.style.display = "none";
 }
+flatpickr("#date", {
+  dateFormat: "d-m-Y",
+  defaultDate: "today",
+  allowInput: true,
+  disableMobile: true
+});
 </script>
 <!-- ERROR MODAL -->
 <div class="modal" id="errorModal">
