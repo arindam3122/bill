@@ -462,6 +462,9 @@ th { background: #f4f4f4; }
 </div>
 
 <script>
+ // ================= UPI PAYMENT DETAILS =================
+const UPI_ID = "ronimitra166@okhdfcbank";      // 🔴 CHANGE THIS
+const PAYEE_NAME = "Arindam Mitra"; // Shop / Business name
 /* DATE FORMATTER */
 function formatDateToDDMMYYYY(dateInput) {
     const d = new Date(dateInput);
@@ -631,7 +634,12 @@ function saveEdit() {
 function closeModal() {
     editModal.style.display = "none";
 }
+function getUpiQrUrl(amount) {
+    const upiUrl =
+        `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(PAYEE_NAME)}&am=${amount}&cu=INR`;
 
+    return `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(upiUrl)}`;
+}
 /* PDF */
 function generatePDF(action) {
   const { jsPDF } = window.jspdf;
@@ -762,6 +770,23 @@ function generatePDF(action) {
 
   // ===== DIVIDER ABOVE FOOTER =====
   const finalY = doc.lastAutoTable.finalY + 2;
+  // ================= UPI QR CODE =================
+const qrSize = 40;
+const qrX = 150;
+const qrY = finalY + 8;
+
+// Payable amount (after deduction)
+const qrUrl = getUpiQrUrl(payable);
+
+doc.setFontSize(10);
+doc.setTextColor(0, 0, 0);
+doc.text("Scan to Pay (UPI)", qrX, qrY - 4);
+
+doc.addImage(qrUrl, "PNG", qrX, qrY, qrSize, qrSize);
+
+doc.setFontSize(9);
+doc.setTextColor(80, 80, 80);
+doc.text(`UPI ID: ${UPI_ID}`, qrX - 10, qrY + qrSize + 6);
   doc.setDrawColor(200, 230, 201);
   doc.line(14, finalY, 196, finalY);
 
