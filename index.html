@@ -468,7 +468,9 @@ const PAYEE_NAME = "Arindam Mitra"; // Shop / Business name
 /* DATE FORMATTER */
 function formatDateToDDMMYYYY(dateInput) {
 
-    // If date is already a Date object
+    if (!dateInput) return "";
+
+    // If input is Date object
     if (dateInput instanceof Date) {
         const day = String(dateInput.getDate()).padStart(2, "0");
         const month = String(dateInput.getMonth() + 1).padStart(2, "0");
@@ -476,18 +478,20 @@ function formatDateToDDMMYYYY(dateInput) {
         return `${day}/${month}/${year}`;
     }
 
-    // If coming from flatpickr (dd-mm-yyyy)
-    const parts = dateInput.split("-");
+    // If input is yyyy-mm-dd (from input type="date")
+    if (dateInput.includes("-")) {
+        const parts = dateInput.split("-");
+        return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
 
-    if (parts.length === 3) {
-        const day = parts[0];
-        const month = parts[1];
-        const year = parts[2];
-        return `${day}/${month}/${year}`;
+    // If already dd/mm/yyyy
+    if (dateInput.includes("/")) {
+        return dateInput;
     }
 
     return "";
 }
+
 function formatForDatetimeLocal(isoString) {
     const d = new Date(isoString);
 
@@ -602,12 +606,26 @@ function closeDeleteConfirm() {
 /* MODAL EDIT */
 function openEdit(btn) {
     editRowRef = btn.closest("tr");
-    mDate.value = editRowRef.cells[0].innerText.split("/").reverse().join("-");
+
+    let tableDate = editRowRef.cells[0].innerText;
+
+    // If format is dd/mm/yyyy
+    if (tableDate.includes("/")) {
+        const parts = tableDate.split("/");
+        mDate.value = `${parts[2]}-${parts[1]}-${parts[0]}`;
+    }
+    // If format is yyyy-mm-dd
+    else if (tableDate.includes("-")) {
+        mDate.value = tableDate;
+    }
+
     mProduct.value = editRowRef.cells[1].innerText;
     mPrice.value = editRowRef.cells[2].innerText;
     mQty.value = editRowRef.cells[3].innerText;
+
     editModal.style.display = "flex";
 }
+
 
 function saveEdit() {
     const oldDate = editRowRef.cells[0].innerText;
@@ -851,18 +869,29 @@ function loadInvoiceToEditor(inv) {
     tbody.innerHTML = "";
 
     // Add rows
-    inv.items.forEach(it => {
-        const row = document.createElement("tr");
-        row.innerHTML = `
-            <td>${it.date}</td>
-            <td>${it.product}</td>
-            <td>${it.price}</td>
-            <td>${it.qty}</td>
-            <td class="amount">${it.amount}</td>
-            <td></td>
-        `;
-        tbody.appendChild(row);
-    });
+inv.items.forEach(it => {
+
+    let displayDate = it.date;
+
+    // Convert yyyy-mm-dd
+    if (displayDate.includes("-")) {
+        let parts = displayDate.split("-");
+        displayDate = parts[2] + "/" + parts[1] + "/" + parts[0];
+    }
+
+    const row = document.createElement("tr");
+
+    row.innerHTML = `
+        <td>${displayDate}</td>
+        <td>${it.product}</td>
+        <td>${it.price}</td>
+        <td>${it.qty}</td>
+        <td class="amount">${it.amount}</td>
+        <td></td>
+    `;
+
+    tbody.appendChild(row);
+});
 
     document.getElementById("deduction").value = inv.deduction || 0;
     updateTotal();
@@ -1138,17 +1167,30 @@ function viewInvoiceByNo(invoiceNo) {
             </tr>
     `;
 
-    inv.items.forEach(it => {
-        html += `
-            <tr>
-                <td>${it.date}</td>
-                <td>${it.product}</td>
-                <td>${it.price}</td>
-                <td>${it.qty}</td>
-                <td>${it.amount}</td>
-            </tr>
-        `;
-    });
+inv.items.forEach(it => {
+
+let displayDate = it.date;
+
+// If format is yyyy-mm-dd
+if (displayDate.includes("-")) {
+    displayDate = displayDate.split("-").reverse().join("/");
+}
+
+// If format is yyyy/mm/dd
+else if (displayDate.match(/^\d{4}\/\d{2}\/\d{2}$/)) {
+    displayDate = displayDate.split("/").reverse().join("/");
+}
+
+    html += `
+        <tr>
+            <td>${displayDate}</td>
+            <td>${it.product}</td>
+            <td>${it.price}</td>
+            <td>${it.qty}</td>
+            <td>${it.amount}</td>
+        </tr>
+    `;
+});
 
     html += `
         </table>
@@ -1425,18 +1467,27 @@ function renderMenuList() {
 }
 function sortTableByDate() {
     const tbody = document.querySelector("#billTable tbody");
-
     const rows = Array.from(tbody.querySelectorAll("tr"));
 
     rows.sort((a, b) => {
 
-        const dateA = new Date(a.cells[0].innerText.split("/").reverse().join("-"));
-        const dateB = new Date(b.cells[0].innerText.split("/").reverse().join("-"));
+        let dateA = a.cells[0].innerText;
+        let dateB = b.cells[0].innerText;
 
-        return dateA - dateB; // ascending
+        if (dateA.includes("-")) {
+            dateA = dateA.split("-").reverse().join("/");
+        }
+
+        if (dateB.includes("-")) {
+            dateB = dateB.split("-").reverse().join("/");
+        }
+
+        const parsedA = new Date(dateA.split("/").reverse().join("-"));
+        const parsedB = new Date(dateB.split("/").reverse().join("-"));
+
+        return parsedA - parsedB;
     });
 
-    // Re-append sorted rows
     rows.forEach(row => tbody.appendChild(row));
 }
 let editingInvoiceNo = null;
@@ -1474,7 +1525,13 @@ function addEditInvoiceItem(item = {}) {
     div.style.marginBottom = "8px";
 
     div.innerHTML = `
-        <input type="date" value="${item.date ? item.date.split('/').reverse().join('-') : ''}">
+        <input type="date" value="${
+    item.date
+        ? (item.date.includes('/')
+            ? item.date.split('/').reverse().join('-')
+            : item.date)
+        : ''
+}">
         <input value="${item.product || ''}">
         <input type="number" value="${item.price || ''}">
         <input type="number" value="${item.qty || ''}">
@@ -1571,11 +1628,12 @@ function closeEditInvoice() {
     editInvoiceModal.style.display = "none";
 }
 flatpickr("#date", {
-  dateFormat: "d-m-Y",
+  dateFormat: "d/m/Y",
   defaultDate: "today",
   allowInput: true,
   disableMobile: true
 });
+
 </script>
 <!-- ERROR MODAL -->
 <div class="modal" id="errorModal">
